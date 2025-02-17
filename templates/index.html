@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X.com Feed Viewer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">X.com Feed Viewer</h1>
+            
+            <!-- Search Form -->
+            <form id="tweetForm" class="mb-8">
+                <div class="flex gap-4">
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           placeholder="Enter X.com username (without @)" 
+                           class="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500">
+                    <button type="submit" 
+                            class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition duration-200">
+                        Fetch Tweets
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="hidden">
+                <div class="flex justify-center items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="error" class="hidden mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            </div>
+
+            <!-- Tweets Container -->
+            <div id="tweets" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('tweetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const tweetsContainer = document.getElementById('tweets');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            
+            // Reset state
+            tweetsContainer.innerHTML = '';
+            error.classList.add('hidden');
+            loading.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/fetch-tweets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${encodeURIComponent(username)}`
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch tweets');
+                }
+                
+                if (data.tweets.length === 0) {
+                    tweetsContainer.innerHTML = `
+                        <div class="text-center text-gray-600">
+                            No tweets found for @${username}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                data.tweets.forEach(tweet => {
+                    const tweetElement = document.createElement('div');
+                    tweetElement.className = 'bg-white p-4 rounded-lg shadow';
+                    tweetElement.innerHTML = `
+                        <p class="text-gray-800 mb-2">${tweet.text}</p>
+                        <p class="text-sm text-gray-500">${tweet.created_at}</p>
+                    `;
+                    tweetsContainer.appendChild(tweetElement);
+                });
+                
+            } catch (err) {
+                error.textContent = err.message;
+                error.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html> 
